@@ -1,7 +1,7 @@
 import multiprocessing as p
+from multiprocessing import Queue
 
-
-class DetectionEngine():
+class DetectionEngine:
     """
     Primary Engine which handles passing data into detection modules.
     Spins a thread for network monitoring.
@@ -13,12 +13,13 @@ class DetectionEngine():
     Returns:
         None
     """
-    def __init__(self, config: dict) -> None:
+    def __init__(self, config: dict, input_queue: Queue) -> None:
         if config is None:
             print("Config cannot be None")
             raise ValueError("Config cannot be None")
         
         self.config = config
+        self.queue = input_queue
         #self.network_thread = p.Process(target=network.network_monitor, args=(self.config["network_interface"])) TODO
         #self.signatures = self.load_signatures(self.config["signature_directory"]) TODO
 

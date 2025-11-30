@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import MagicMock
-from src.detection_engine import DetectionEngine 
+from src.detection_engine import DetectionEngine
+from multiprocessing import Queue
 
 @pytest.fixture
 def mock_config():
@@ -9,7 +10,7 @@ def mock_config():
 
 @pytest.fixture
 def mock_detection_engine(mock_config):
-    return DetectionEngine(config=mock_config)
+    return DetectionEngine(config=mock_config, input_queue=Queue(5))
 
 
 class TestDetectionEngine:
@@ -18,7 +19,7 @@ class TestDetectionEngine:
         """
         Verifies that detection engine intiialise with a correct config.
         """
-        engine = DetectionEngine(config=mock_config)
+        engine = DetectionEngine(config=mock_config, input_queue=Queue(5))
 
         assert isinstance(engine, DetectionEngine), "DectectionEngine instance was not initialised properly."
 
