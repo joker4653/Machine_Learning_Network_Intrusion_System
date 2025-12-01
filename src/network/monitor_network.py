@@ -1,4 +1,5 @@
 import scapy
+from scapy.all import sniff, Raw, Packet
 from multiprocessing import Queue, Process
 
 class NetworkMonitor():
@@ -32,7 +33,19 @@ class NetworkMonitor():
         """
         return
     
-    def deconstruct_packet(self, packet) -> dict[str, str]:
+    def __helper_deconstruct_packet(self, layer) -> dict:
+        """Helper function which extracts field names and values from a scapy layer"""
+        data = {}
+
+        for field, value in layer.fields.items():
+            if field == 'options' and isinstance(value, list):
+                data[field] = [opt.name for opt in value]
+            else:
+                data[field] = str(value)
+
+        return data
+
+    def deconstruct_packet(self, packet) -> dict:
         """
         Will deconstruct a packet into a dictionary of the following form:
         {
@@ -42,8 +55,49 @@ class NetworkMonitor():
         }
 
         args: 
-            packet (byte): Packet sniffed and provided as raw bytes.
+            packet (Packet): Packet sniffed and provided as scapy packet object.
 
         Returns: A packet deconstructed into its headers in a dictionary object.
         """
-        return {}
+        if not isinstance(packet, Packet):
+            raise ValueError("Not a Packet value")
+        
+        analysis_result = {
+            "summary": packet.summary(),
+            "packet_length": len(packet),
+            "layers": [],
+            "raw_payload_data": None,
+            "is_fragment": False
+        }
+
+        current_layer = packet
+        
+        # Iterate through the layers until the payload is exhausted
+        while current_layer:
+            layer_name = current_layer.name
+            
+            layer_data = {
+                "name": layer_name,
+                "fields": self.__helper_deconstruct_packet(current_layer),
+                "summary": current_layer.summary()
+            }
+            
+            # Check for the Raw layer to extract the application data payload
+            if layer_name == 'Raw':
+                # Store the raw load bytes directly for pattern matching
+                analysis_result["raw_payload_data"] = bytes(current_layer.load)
+            
+            analysis_result["layers"].append(layer_data)
+            
+            # Check for IP fragmentation flags (only for IP layer)
+            if layer_name == 'IP':
+                if current_layer.flags & 0x01 or current_layer.frag != 0: # Check MF or FO
+                    analysis_result["is_fragment"] = True
+
+            # Move to the next layer
+            if current_layer.payload:
+                current_layer = current_layer.payload
+            else:
+                break
+                
+        return analysis_result
