@@ -23,24 +23,23 @@ class DetectionEngine:
         #self.network_thread = p.Process(target=network.network_monitor, args=(self.config["network_interface"])) TODO
         #self.signatures = self.load_signatures(self.config["signature_directory"]) TODO
 
-        def stop(self):
+        def stop(self) -> bool:
             """
             stops all existing threads and closing modules.
 
-            Returns:
-                True if successful
-                False if unsuccessful
+            Returns: True if successful, False if unsuccessful
             """
+            return False
 
-        def load_signatures(self, directory: str) -> dict:
+        def load_signatures(self, directory: str) -> dict[str, str]:
             """
             Loads Signatures from a directory.
 
             Args:
                 directory (str): Directory where signatures are stored.
 
-            Returns:
-                dict: Dictionary of signatures loaded from files.
+            Returns: 
+                dict:a dictionary of signatures loaded from files.
             """
             return {}
 
@@ -53,8 +52,7 @@ class DetectionEngine:
                 packet Dict(str, str): Where key is the type of information i.e. 'src_ip' and value is the actual information i.e. 192.168.2.110
 
             Returns:
-                True if malicious
-                False if benign
+                Bool: True if malicious, False if benign
             """
 
             return False
