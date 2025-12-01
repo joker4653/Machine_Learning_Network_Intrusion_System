@@ -6,7 +6,7 @@ class NetworkMonitor():
         self.network_adapter = 'eth0' if network_adapter is None else network_adapter
         self.queue = input_queue
         self.process = None
-        self.running = None
+        self.running = False
 
     def start(self) -> Process | None:
         """
