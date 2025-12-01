@@ -3,7 +3,7 @@ from scapy.all import sniff, Raw, Packet
 from multiprocessing import Queue, Process
 
 class NetworkMonitor():
-    def __init__(self, input_queue, network_adapter = None) -> None:
+    def __init__(self, input_queue : Queue, network_adapter = None) -> None:
         self.network_adapter = 'eth0' if network_adapter is None else network_adapter
         self.queue = input_queue
         self.process = None
@@ -15,6 +15,13 @@ class NetworkMonitor():
 
         Returns: The handle to the monitoring process, else None
         """
+        if self.running == True:
+            pass
+        self.running = True
+        self.process = Process(target=self.cycle,)
+        if self.process is None:
+            raise ValueError("Process not correctly created")
+        return self.process
         
     def stop(self) -> bool:
         """
@@ -22,7 +29,13 @@ class NetworkMonitor():
         
         Returns: True if successful, False if failed.
         """
-        return False
+        if self.running == False:
+            return False
+        
+        # by setting self.running to false we naturally let our cycle to end without termination
+        self.running = False
+        
+        return True
 
     def cycle(self) -> None:
         """
@@ -31,6 +44,24 @@ class NetworkMonitor():
 
         Returns: None
         """
+        def packet_callback(pkt: Packet) -> None:
+            processed = self.deconstruct_packet(pkt)
+            try:
+                self.queue.put_nowait(processed)
+            except Exception as e:
+                print(f"DROPPED PACKET DUE TO QUEUE BEING FULL: {e}")
+
+        while self.running:
+            try:
+                sniff(iface=self.network_adapter, prn=packet_callback, store=0, timeout=5)
+            except OSError as e:
+                print(f"Error during sniffing on {self.network_adapter}: {e}")
+                break
+            except Exception as e:
+                print(f"Unexpected error occured in cycle loop: {e}")
+                break
+
+        print(f"Monitoring cycle on {self.network_adapter} has stopped.")
         return
     
     def __helper_deconstruct_packet(self, layer) -> dict:
