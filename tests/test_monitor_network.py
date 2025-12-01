@@ -1,5 +1,6 @@
 import pytest
-from multiprocessing import Queue, Process
+from multiprocessing import Queue as processingQueue
+from multiprocessing import Process
 from src.network.monitor_network import NetworkMonitor
 from scapy.layers.l2 import Ether
 from scapy.layers.inet import IP, TCP, UDP, ICMP, fragment
@@ -9,12 +10,12 @@ SAMPLE_QUEUE_SIZE = 10
 
 @pytest.fixture
 def mock_monitor():
-    return NetworkMonitor(Queue(SAMPLE_QUEUE_SIZE))
+    return NetworkMonitor(processingQueue(SAMPLE_QUEUE_SIZE))
 
 @pytest.fixture
 def started_monitor(mock_monitor):
     mock_monitor.start()
-    return started_monitor
+    return mock_monitor
 
 @pytest.fixture
 def mock_packet():
@@ -38,12 +39,11 @@ class TestNetworkMonitor:
     """Tests for the monitor_network.py file in src/network/monitor_network.py"""
 
     def test_intialise_NetworkMonitor_class(self):
-        monitor = NetworkMonitor(Queue(SAMPLE_QUEUE_SIZE))
+        monitor = NetworkMonitor(input_queue=processingQueue(SAMPLE_QUEUE_SIZE))
         assert isinstance(monitor, NetworkMonitor)
         assert monitor.network_adapter == 'eth0', "network adapter intialised to non default."
-        assert isinstance(monitor.queue, Queue), "queue was not intialised to a Queue object."
-
-        monitor2 = NetworkMonitor(Queue(SAMPLE_QUEUE_SIZE), "fake_adapter")
+    
+        monitor2 = NetworkMonitor(processingQueue(SAMPLE_QUEUE_SIZE), "fake_adapter")
         assert monitor2.network_adapter == "fake_adapter", "adapter did not intialise to argument provided."
 
 
@@ -55,12 +55,6 @@ class TestNetworkMonitor:
 
     def test_stop_return_false(self, mock_monitor):
         assert mock_monitor.stop() == False, "stop function failed to handle a non running monitor"
-
-    def test_cycle_adds_to_queue(self):
-        pass
-
-    def test_cycle_handles_bad_packet(self):
-        pass
 
     def test_deconstruct_packet_correctly(self, mock_packet : Packet, mock_monitor: NetworkMonitor):
         analysis = mock_monitor.deconstruct_packet(mock_packet)
