@@ -1,6 +1,7 @@
 import scapy
 from scapy.all import sniff, Raw, Packet
 from multiprocessing import Queue, Process
+import time
 
 class NetworkMonitor():
     def __init__(self, input_queue : Queue, network_adapter = None) -> None:
@@ -96,9 +97,11 @@ class NetworkMonitor():
         analysis_result = {
             "summary": packet.summary(),
             "packet_length": len(packet),
+            "packet_timestamp": getattr(packet, 'time', time.time()), 
             "layers": [],
             "raw_payload_data": None,
-            "is_fragment": False
+            "is_fragment": False,
+            "tcp_flags": {}
         }
 
         current_layer = packet
@@ -124,6 +127,18 @@ class NetworkMonitor():
             if layer_name == 'IP':
                 if current_layer.flags & 0x01 or current_layer.frag != 0: # Check MF or FO
                     analysis_result["is_fragment"] = True
+
+            if layer_name == 'TCP':
+            # Added flags to be piped into flow similar to model dataset
+                flags_value = current_layer.flags
+                analysis_result["tcp_flags"] = {
+                    "FIN": 1 if flags_value.F else 0, # F: FIN (Used for connection teardown)
+                    "SYN": 1 if flags_value.S else 0, # S: SYN (Used for connection initiation, high for scanning)
+                    "RST": 1 if flags_value.R else 0, # R: RST (Used for abrupt termination, high for abnormal flows)
+                    "PSH": 1 if flags_value.P else 0, # P: PSH (Used for pushing data immediately)
+                    "ACK": 1 if flags_value.A else 0, # A: ACK (Used for acknowledging data)
+                    "URG": 1 if flags_value.U else 0, # U: URG (Urgent pointer field significant)
+                }
 
             # Move to the next layer
             if current_layer.payload:
