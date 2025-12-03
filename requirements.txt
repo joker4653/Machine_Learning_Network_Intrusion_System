@@ -1,3 +1,5 @@
 torch
 pytest
+pytest-cov
+pytest-mock
 scapy
