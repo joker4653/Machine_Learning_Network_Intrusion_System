@@ -96,32 +96,36 @@ def test_flow_initialization_and_packet_aggregation(mock_time, p1_a_to_b, p2_b_t
     assert flow['start_time'] == 1000.0 # Start time unchanged
     assert flow['last_time'] == 1001.5 # Last time updated
 
-@patch('time.time')
 def test_flow_timeout_and_feature_finalization(mock_time, p1_a_to_b):
     """Tests that flows are finalized correctly when they timeout."""
     engine = FlowEngine(flow_timeout_sec=5)
     
     # 1. Process P1 (Start)
-    mock_time.return_value = 2000.0
-    key, _ = engine.process_packet(p1_a_to_b)
+    key, _ = engine.process_packet(p1_a_to_b, 2000.0)
     assert len(engine.active_flows) == 1
     
     # 2. Advance time *past* timeout
-    mock_time.return_value = 2007.0 # 7 seconds later (timeout is 5s)
+    final_time =  2007.0 # 7 seconds later (timeout is 5s)
     
     # 3. Check for timeouts (triggered by the next packet or explicit check)
-    final_data = engine.check_and_flush_timeouts(mock_time.return_value)
+    engine.check_for_timeouts(final_time)
     
     assert len(engine.active_flows) == 0 # Flow should be removed
+
+    # retrieve the flow from finalised.
+    final_data = engine.finalised_flows[0]
+
     assert final_data is not None
     assert final_data['total_packets'] == 1
     
     # Duration should be the difference between mock_time and start_time (2007 - 2000)
+    print(final_data['start_time'])
+    print(final_data['last_time'])
     assert final_data['duration'] == pytest.approx(7.0)
     
     # Rate should be total_packets / duration (1 / 7)
-    assert final_data['packet_rate_per_sec'] == pytest.approx(1 / 7)
-    assert final_data in engine.finalized_flows
+    assert final_data['rate'] == pytest.approx(1 / 7)
+    assert final_data in engine.finalised_flows
 
 @patch('time.time')
 def test_multiple_flows_coexistence(mock_time, p1_a_to_b, p3_new_flow):
