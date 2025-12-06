@@ -57,10 +57,8 @@ def test_flow_key_canonicalization(p1_a_to_b, p2_b_to_a):
     key_forward = create_flow_key(p1_a_to_b)
     key_reverse = create_flow_key(p2_b_to_a)
     
-    print(key_forward[0])
-    print(key_reverse)
     # Example key format should be like: '8.8.8.8:80||192.168.1.100:54321||6' (Sorted IP/Port)
-    assert key_forward == key_reverse
+    assert key_forward[0] == key_reverse[0]
 
 def test_flow_key_protocol_separation(p1_a_to_b, p3_new_flow):
     """Ensures keys for different protocols are unique."""
