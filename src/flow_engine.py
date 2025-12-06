@@ -189,12 +189,12 @@ class FlowEngine:
         source_lengths = flow.pop('s_packet_lengths', [])
         if source_lengths:
             flow['smean'] = mean(source_lengths)
-            flow['sdev'] = float(stdev(source_lengths)) if source_lengths.len() > 1 else 0.0
+            flow['sdev'] = float(stdev(source_lengths)) if len(source_lengths) > 1 else 0.0
 
         dest_lengths = flow.pop('d_packet_lengths', [])
         if dest_lengths:
             flow['dmean'] = mean(dest_lengths)
-            flow['ddev'] = float(stdev(dest_lengths)) if dest_lengths.len() > 1 else 0.0
+            flow['ddev'] = float(stdev(dest_lengths)) if len(dest_lengths) > 1 else 0.0
 
         
         # IAT, defined as the amount of time after a packet is received, the next one is received
