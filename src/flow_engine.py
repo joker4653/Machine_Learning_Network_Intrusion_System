@@ -219,7 +219,21 @@ class FlowEngine:
         Processes a single deconstructed packet
         
         """
-        return None
+        key, is_foward, ip_port_a, ip_port_b = create_flow_key(packet_data)
+        if not key:
+            return "", None
+
+        # Create a new flow if does not exist already.
+        curr_time = time.time()
+
+        if key not in self.active_flows:
+            self.intialise_new_flow(key, curr_time)
+
+        self.update_flow_stats(self.active_flows[key], packet_data, is_foward, curr_time)
+
+        finalised = self.check_for_timeouts(curr_time)
+        # currently return the flow + key, in the future we expect to just store this on a queue
+        return key, finalised
     
     def check_for_timeouts(self, current_time: float):
         """
