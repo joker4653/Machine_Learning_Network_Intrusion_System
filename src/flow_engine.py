@@ -64,7 +64,41 @@ def create_flow_key(packet_data: Dict[str, Any]) -> Tuple[str, bool, Tuple[str, 
               is_forward_direction is True if the packet matches the canonical 'A->B' direction.
     
     """
+    ip_fields = next((l['fields'] for l in packet_data['layers'] if l['name'] == 'IP'), {})
+    l4_fields = next((l['fields'] for l in packet_data['layers'] if l['name'] in ['TCP', 'UDP']), {})
 
+    src_ip = ip_fields.get('src', '')
+    dst_ip = ip_fields.get('dst', '')
+    proto = ip_fields.get('proto', '')
+    
+    # Handle cases where ports might be missing (e.g., ICMP or malformed packets)
+    try:
+        src_port = int(l4_fields.get('sport', 0))
+        dst_port = int(l4_fields.get('dport', 0))
+    except:
+        src_port = 0
+        dst_port = 0
+    
+    if not all([src_ip, dst_ip, proto]):
+        return "", False, ("", 0), ("", 0)
+
+    ip_port_a = (src_ip, src_port)
+    ip_port_b = (dst_ip, dst_port)
+
+    # Determine canonical order based on IP/Port tuples
+    is_forward = ip_port_a < ip_port_b
+    
+    # Set canonical (A is the lesser IP/Port, B is the greater)
+    canonical_a, canonical_b = (ip_port_a, ip_port_b) if is_forward else (ip_port_b, ip_port_a)
+    
+    # Example key format: 'IP_A:Port_A||IP_B:Port_B||Protocol'
+    key_parts = [
+        f"{canonical_a[0]}:{canonical_a[1]}",
+        f"{canonical_b[0]}:{canonical_b[1]}",
+        proto
+    ]
+    
+    return "||".join(key_parts), is_forward, ip_port_a, ip_port_b
 
 class FlowEngine:
     def __init__(self, flow_timeout_sec: int = 60) -> None:
