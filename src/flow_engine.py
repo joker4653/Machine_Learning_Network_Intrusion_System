@@ -1,6 +1,6 @@
 import time
 import math
-import statistics
+from statistics import mean, stdev,
 from typing import Dict, Any, Tuple, List
 
 # NF-UNSW-NB15 Feature Template
@@ -139,7 +139,35 @@ class FlowEngine:
         Calculate the derived stats required to meet dataset
         
         """
-        return None
+
+        # rates & durations
+        duration = flow['last_time'] - flow['start_time']
+        flow['duration'] = duration if duration > 0 else 0.001 # non zero value to avoid division for rates
+
+        if duration > 0:
+            flow['rate'] = flow['total_packets'] / duration
+            flow['srate'] = flow['spkts'] / duration
+            flow['drate'] = flow['dpkts'] / duration
+
+        # packet length statistics
+        # pop because we do not need these values after processing the flow.
+        # the NN does not expect these values
+        source_lengths = flow['s_packet_lengths'].pop()
+        if source_lengths:
+            flow['smean'] = mean(source_lengths)
+            flow['sdev'] = float(stdev(source_lengths)) if source_lengths.len() > 1 else 0.0
+
+        dest_lengths = flow['d_packet_lengths'].pop()
+        if dest_lengths:
+            flow['dmean'] = mean(dest_lengths)
+            flow['ddev'] = float(stdev(dest_lengths)) if dest_lengths.len() > 1 else 0.0
+
+        
+        # IAT, defined as the amount of time after a packet is received, the next one is received
+        timestamps = flow['timestamps'].pop()
+        all_iat = [timestamps[i] - timestamps[i - 1] for i in range(1, len(timestamps))]
+        flow['mean_iat'] = mean(all_iat)
+        flow['stdev_iat'] = float(stdev(all_iat)) if len(all_iat) > 1 else 0.0
 
     def finalise_flow(self, key: str, flow: Dict[str, Any]) -> Dict[str, Any]:
         """
