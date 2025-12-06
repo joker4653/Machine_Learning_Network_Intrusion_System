@@ -92,7 +92,46 @@ class FlowEngine:
     def update_flow_stats(self, flow: Dict[str, Any], packet_data: Dict[str, Any], is_forward: bool, current_time: float) -> None:
         """
         Update all statistics    
-        """    
+        """
+        packet_len = packet_data.get('packet_length', 0)
+        tcp_flags = packet_data.get('tcp_flags', {})
+
+        # update times
+        flow['total_packets'] += 1
+        flow['total_bytes'] += packet_len
+        flow['timestamps'].append(current_time)
+        flow['last_time'] = current_time
+
+
+        # update directional features
+        if is_forward:
+            flow['spkts'] += 1
+            flow['sbytes'] += packet_len
+            flow['s_packet_lengths'].append(packet_len)
+        else:
+            flow['dpkts'] += 1
+            flow['dbytes'] += packet_len
+            flow['d_packet_lengths'].append(packet_len)
+
+        # min and max pkt lengths
+        if packet_len > flow['max_pkt_len']:
+            flow['max_pkt_len'] = packet_len
+        if flow['min_pkt_len'] == 0 or packet_len < flow['min_pkt_len']:
+            flow['min_pkt_len'] = packet_len
+    
+        # protocols flags
+        if tcp_flags:
+            flow['fin_flag_count'] += tcp_flags.get('FIN', 0)
+            flow['syn_flag_count'] += tcp_flags.get('SYN', 0)
+            flow['rst_flag_count'] += tcp_flags.get('RST', 0)
+            flow['psh_flag_count'] += tcp_flags.get('PSH', 0)
+            flow['ack_flag_count'] += tcp_flags.get('ACK', 0)
+            flow['urg_flag_count'] += tcp_flags.get('URG', 0)
+
+        if packet_data.get('is_fragment', False):
+            flow['is_fragmented'] = True
+
+        
         return None
     
     def calculate_stats(self, flow: Dict[str, Any]) -> None:
