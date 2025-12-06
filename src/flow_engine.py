@@ -152,19 +152,19 @@ class FlowEngine:
         # packet length statistics
         # pop because we do not need these values after processing the flow.
         # the NN does not expect these values
-        source_lengths = flow['s_packet_lengths'].pop()
+        source_lengths = flow.pop('s_packet_lengths', [])
         if source_lengths:
             flow['smean'] = mean(source_lengths)
             flow['sdev'] = float(stdev(source_lengths)) if source_lengths.len() > 1 else 0.0
 
-        dest_lengths = flow['d_packet_lengths'].pop()
+        dest_lengths = flow.pop('d_packet_lengths', [])
         if dest_lengths:
             flow['dmean'] = mean(dest_lengths)
             flow['ddev'] = float(stdev(dest_lengths)) if dest_lengths.len() > 1 else 0.0
 
         
         # IAT, defined as the amount of time after a packet is received, the next one is received
-        timestamps = flow['timestamps'].pop()
+        timestamps = flow.pop('timestamps', [])
         all_iat = [timestamps[i] - timestamps[i - 1] for i in range(1, len(timestamps))]
         flow['mean_iat'] = mean(all_iat)
         flow['stdev_iat'] = float(stdev(all_iat)) if len(all_iat) > 1 else 0.0
@@ -173,11 +173,19 @@ class FlowEngine:
         """
         Creates final entry to flow and moves to finalised flows
         """
-        return {}
+        self.calculate_stats(flow)
 
+        del self.active_flows[key]
+        self.finalised_flows.append(flow)
+
+        return flow
+    
     def process_packet(self, packet_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any] | None]:
         """
         Processes a single deconstructed packet
         
         """
         return None
+    
+    def check_for_timeouts(self, current_time: float):
+        pass
