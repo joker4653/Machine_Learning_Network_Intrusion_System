@@ -37,7 +37,6 @@ class TestDetectionEngine:
     
         # insert assert all public variables are set correctly.
         # i.e. self.network_thread is not None.
-        return False
     
     def test_setup_network_thread(self, mock_detection_engine):
         #assert isinstance(mock_detection_engine.network_monitor, NetworkMonitor), "Network Monitoring Process not setup correctly."
