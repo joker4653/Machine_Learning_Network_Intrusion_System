@@ -1,6 +1,6 @@
 import time
 import math
-from statistics import mean, stdev,
+from statistics import mean, stdev
 from typing import Dict, Any, Tuple, List
 
 # NF-UNSW-NB15 Feature Template
@@ -222,4 +222,15 @@ class FlowEngine:
         return None
     
     def check_for_timeouts(self, current_time: float):
-        pass
+        """
+        Checks for Keys which need to be finalised based on self.flow_timeout
+        Keys that are finalised, will be added to the finalised flows list
+        """
+        to_be_finalised = []
+        for key, flow in self.active_flows.items():
+            if current_time - flow['last_time'] > self.flow_timeout_sec:
+                to_be_finalised.append(key)
+
+        for key in to_be_finalised:
+            flow = self.active_flows[key]
+            self.finalise_flow(key, flow)
