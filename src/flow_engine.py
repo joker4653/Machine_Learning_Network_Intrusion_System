@@ -1,7 +1,7 @@
 import time
 import math
 from statistics import mean, stdev
-from typing import Dict, Any, Tuple, List
+from typing import Dict, Any, Optional, Tuple, List
 
 # NF-UNSW-NB15 Feature Template
 FLOW_FEATURE_TEMPLATE = {
@@ -188,19 +188,19 @@ class FlowEngine:
         # the NN does not expect these values
         source_lengths = flow.pop('s_packet_lengths', [])
         if source_lengths:
-            flow['smean'] = mean(source_lengths)
+            flow['smean'] = float(mean(source_lengths)) if len(source_lengths) > 0 else 0.0
             flow['sdev'] = float(stdev(source_lengths)) if len(source_lengths) > 1 else 0.0
 
         dest_lengths = flow.pop('d_packet_lengths', [])
         if dest_lengths:
-            flow['dmean'] = mean(dest_lengths)
+            flow['dmean'] = float(mean(dest_lengths)) if len(source_lengths) > 0 else 0.0
             flow['ddev'] = float(stdev(dest_lengths)) if len(dest_lengths) > 1 else 0.0
 
         
         # IAT, defined as the amount of time after a packet is received, the next one is received
         timestamps = flow.pop('timestamps', [])
         all_iat = [timestamps[i] - timestamps[i - 1] for i in range(1, len(timestamps))]
-        flow['mean_iat'] = mean(all_iat)
+        flow['mean_iat'] = float(mean(all_iat)) if len(all_iat) > 0 else 0.0
         flow['stdev_iat'] = float(stdev(all_iat)) if len(all_iat) > 1 else 0.0
 
     def finalise_flow(self, key: str, flow: Dict[str, Any]) -> Dict[str, Any]:
@@ -214,7 +214,7 @@ class FlowEngine:
 
         return flow
     
-    def process_packet(self, packet_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any] | None]:
+    def process_packet(self, packet_data: Dict[str, Any], current_time: Optional[float] = None) -> Tuple[str, Dict[str, Any] | None]:
         """
         Processes a single deconstructed packet
         
@@ -224,7 +224,7 @@ class FlowEngine:
             return "", None
 
         # Create a new flow if does not exist already.
-        curr_time = time.time()
+        curr_time = current_time if current_time is not None else time.time()
 
         if key not in self.active_flows:
             self.intialise_new_flow(key, curr_time)
