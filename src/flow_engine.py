@@ -74,13 +74,20 @@ class FlowEngine:
         :param flow_timeout_sec: Time in seconds after an inactive flow is finalised
         :type flow_timeout_sec
         """
-
+        self.active_flows: Dict[str, Dict[str, Any]] = {}
+        self.flow_timeout_sec = flow_timeout_sec
+        self.finalised_flows = [] # List of Dict[Str,Any]
 
     def intialise_new_flow(self, key: str, current_time: float) -> None:
         """
         Creates a new flow
         """
-        return None
+        new = FLOW_FEATURE_TEMPLATE.copy()
+        new['start_time'] = current_time
+        new['last_time'] = current_time
+        new['key'] = key
+        
+        self.active_flows[key] = new
     
     def update_flow_stats(self, flow: Dict[str, Any], packet_data: Dict[str, Any], is_forward: bool, current_time: float) -> None:
         """
