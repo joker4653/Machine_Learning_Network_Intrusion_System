@@ -168,20 +168,28 @@ class FlowEngine:
         
         return None
     
-    def calculate_stats(self, flow: Dict[str, Any]) -> None:
+    def calculate_stats(self, flow: Dict[str, Any], finalised_time = None) -> None:
         """
         Calculate the derived stats required to meet dataset
         
         """
 
-        # rates & durations
-        duration = flow['last_time'] - flow['start_time']
-        flow['duration'] = duration if duration > 0 else 0.001 # non zero value to avoid division for rates
-
-        if duration > 0:
-            flow['rate'] = flow['total_packets'] / duration
-            flow['srate'] = flow['spkts'] / duration
-            flow['drate'] = flow['dpkts'] / duration
+        # Original duration: last packet time - first packet time
+        duration_packet_to_packet = flow['last_time'] - flow['start_time']
+        
+        if duration_packet_to_packet <= 0 and flow['total_packets'] == 1:
+            duration = finalised_time - flow['start_time']
+        else:
+            duration = duration_packet_to_packet
+            
+        flow['duration'] = duration if duration > 0 else 0.001
+        duration_for_rate = flow['duration']
+        
+        # 2. Calculate rates 
+        if duration_for_rate > 0:
+            flow['rate'] = flow['total_packets'] / duration_for_rate
+            flow['srate'] = flow['spkts'] / duration_for_rate
+            flow['drate'] = flow['dpkts'] / duration_for_rate
 
         # packet length statistics
         # pop because we do not need these values after processing the flow.
@@ -203,11 +211,11 @@ class FlowEngine:
         flow['mean_iat'] = float(mean(all_iat)) if len(all_iat) > 0 else 0.0
         flow['stdev_iat'] = float(stdev(all_iat)) if len(all_iat) > 1 else 0.0
 
-    def finalise_flow(self, key: str, flow: Dict[str, Any]) -> Dict[str, Any]:
+    def finalise_flow(self, key: str, flow: Dict[str, Any], current_time = None) -> Dict[str, Any]:
         """
         Creates final entry to flow and moves to finalised flows
         """
-        self.calculate_stats(flow)
+        self.calculate_stats(flow, current_time)
 
         del self.active_flows[key]
         self.finalised_flows.append(flow)
@@ -247,4 +255,4 @@ class FlowEngine:
 
         for key in to_be_finalised:
             flow = self.active_flows[key]
-            self.finalise_flow(key, flow)
+            self.finalise_flow(key, flow, current_time)
