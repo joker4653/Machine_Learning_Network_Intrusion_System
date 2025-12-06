@@ -96,6 +96,7 @@ def test_flow_initialization_and_packet_aggregation(mock_time, p1_a_to_b, p2_b_t
     assert flow['start_time'] == 1000.0 # Start time unchanged
     assert flow['last_time'] == 1001.5 # Last time updated
 
+@patch('time.time')
 def test_flow_timeout_and_feature_finalization(mock_time, p1_a_to_b):
     """Tests that flows are finalized correctly when they timeout."""
     engine = FlowEngine(flow_timeout_sec=5)
