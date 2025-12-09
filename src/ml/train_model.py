@@ -9,6 +9,7 @@ from sklearn.model_selection import train_test_split
 import torch
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
+from flow_template import TEMPLATE
 
 #!/usr/bin/env python3
 """
@@ -66,7 +67,11 @@ def load_and_preprocess(csv_path: str, label_cols=None, test_size=0.2, val_size=
     X_df = df.drop(columns=[label_col])
 
     # Drop obvious non-feature columns (timestamps, ids)
-    drop_candidates = [c for c in X_df.columns if c.lower() in ('id', 'timestamp', 'ts', 'dur', 'date')]
+    # Do not drop columns that are present in the exported feature TEMPLATE.
+    reserved = {k.lower() for k in TEMPLATE.keys()}
+    candidates = {x.lower() for x in ('id', 'flow_id', 'session_id', 'timestamp', 'ts', 'date')}
+    drop_candidates = [c for c in X_df.columns if c.lower() in candidates and c.lower() not in reserved]
+    
     if drop_candidates:
         X_df = X_df.drop(columns=drop_candidates, errors='ignore')
 
